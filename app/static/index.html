@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI客服小D</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 560px; margin: 40px auto; padding: 0 16px; }
+    #log { border: 1px solid #ddd; border-radius: 8px; height: 400px; overflow-y: auto; padding: 12px; }
+    .msg { margin: 8px 0; padding: 8px 12px; border-radius: 8px; white-space: pre-wrap; }
+    .user { background: #e8f0fe; text-align: right; }
+    .bot { background: #f1f3f4; }
+    .row { display: flex; gap: 8px; margin-top: 12px; }
+    #input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
+    #send { padding: 10px 20px; border: none; border-radius: 8px; background: #4B3FE3; color: #fff; cursor: pointer; }
+    #send:disabled { opacity: .5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <h2>AI客服小D</h2>
+  <div id="log"></div>
+  <div class="row">
+    <input id="input" placeholder="请输入您的售后问题…" />
+    <button id="send">发送</button>
+  </div>
+
+  <script>
+    const log = document.getElementById("log");
+    const input = document.getElementById("input");
+    const send = document.getElementById("send");
+
+    function addMsg(text, cls) {
+      const div = document.createElement("div");
+      div.className = "msg " + cls;
+      div.textContent = text;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    async function sendMsg() {
+      const message = input.value.trim();
+      if (!message) return;
+      addMsg(message, "user");
+      input.value = "";
+      send.disabled = true;
+      addMsg("小D正在思考…", "bot");
+      try {
+        const resp = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        });
+        const data = await resp.json();
+        log.lastChild.textContent = data.reply || ("出错了：" + (data.detail || resp.status));
+      } catch (e) {
+        log.lastChild.textContent = "网络错误：" + e.message;
+      } finally {
+        send.disabled = false;
+        input.focus();
+      }
+    }
+
+    send.addEventListener("click", sendMsg);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") sendMsg(); });
+  </script>
+</body>
+</html>
