@@ -19,6 +19,10 @@
 4. **讲义留存**：每章讲义 + 学习者当章追问的 Q&A，实时写入 `docs/lessons/chNN-*.md`（追加"追问记录"小节）。
 5. **进度打勾**：每完成一章，更新 `docs/curriculum.md` 的复选框，并 commit + push。
 6. **节奏由学习者控制**：学习者说"继续"才进下一章；说"懂了/跳过"可加速。
+7. **双端同步纪律（本地+云端都要有变更）**：每次云端产生变更（章节、追问记录、代码修复），
+   AI 必须当场 commit+push，并在回复末尾提醒学习者本地 `git pull`；
+   学习者说"本地改了"时，AI 先 `git pull` 再继续干活；
+   沙箱若被重置（表现为文件丢失/在 trae/agent 分支），先 `git fetch && git checkout main && git pull` 恢复。
 
 ## 技术决策（已定，勿重新讨论）
 
@@ -83,10 +87,14 @@
 换设备只需两步：`git clone https://github.com/githubForXiong/ai-learning` →
 对新对话说："读 PROMPT.md，我们继续这个项目"。
 
-## 本地备份与同步约定（学习者家里 GitHub 网络不稳）
+## 本地备份与同步约定（双端一致：本地+云端+GitHub 三处同步）
 
-- 学习者在本地 `E:\vibe coding\ai-learning` 存了一份克隆，与云端、GitHub 构成三点备份。
-- 分工：**云端负责写代码 + push**（云端网络稳定）；**本地主要负责 pull 备份/离线看讲义/本地跑**。
-- 本地几乎不 push；若本地改了想保留，先 `git pull` 再 commit push，然后回云端对话说"帮我 git pull"。
-- 本地要跑应用需自建 `.env`（`DEEPSEEK_API_KEY=sk-...`，此文件不进仓库）+ `pip install -r app/requirements.txt`。
-- 冲突预防：本地动手前先 `git pull`；云端每章结束必 push。两边不同时编辑同一文件即安全。
+- 本地克隆：`E:\vibe coding\ai-learning`（已建），与云端沙箱、GitHub 构成三点同步。
+- **目标：任何变更最终三处一致**。机制：变更方 commit+push，另一方 pull。
+- 日常节奏：
+  - 云端每章/每次追问记录结束 → AI push → 回复末尾提醒学习者"本地执行 git pull"；
+  - 学习者本地改动（练代码/记笔记）→ 本地 `git pull` → 改 → `git add . && git commit -m "..." && git push`
+    → 回云端说"我本地推了变更"，AI `git pull` 后再继续。
+- 冲突预防：不双端同时编辑同一文件；本地动手前先 pull。
+- 本地运行需自建 `.env`（`DEEPSEEK_API_KEY=sk-...`，不进仓库）+ `pip install -r app/requirements.txt`。
+- 家里网络不稳：push 尽量交给云端做；本地 pull 失败可重试，不阻塞学习。
