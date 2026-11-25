@@ -72,4 +72,28 @@ python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 ## 追问记录
 
-（本章暂无追问。后续学习者的提问与解答会追加到这里。）
+### Q1：`app = FastAPI(title="AI客服教材")` 是什么意思？title 是什么的标题？`@app.post`/`@app.get` 又是什么用法？
+
+**`app = FastAPI(...)`**：创建一个"应用对象"，相当于开一家店的总台，所有接口都挂在它名下。
+变量名 `app` 可自取，后面装饰器要跟着改。
+
+**`title="AI客服教材"`**：这份 API 自动文档的标题，不是给终端用户看的。
+FastAPI 会自动生成接口说明页 `http://127.0.0.1:8000/docs`（Swagger UI），
+列出所有接口、可在线填参数点 "Try it out" 直接发请求。
+→ 对测试：这是一份"活的接口说明书 + 手动测试工具"，第 6 章写自动化前先用它手工过一遍。
+
+**`@app.post("/chat")` / `@app.get("/")`**：`@` 是**装饰器**，作用是"登记一个接口"——
+告诉 app：某方法访问某路径时，交给紧贴其下的函数处理；函数的返回值自动转成 JSON 返回。
+- `@app.post("/chat")` + `def chat(body)`：POST /chat → chat() 处理。
+- `@app.get("/")` + `def home()`：GET / → home() 处理。
+用 `@` 是为了把"接口路径"和"处理函数"贴在一起，比手动 `app.add_route(...)` 直观。
+
+**加新接口 = 再贴一个 `@app.xxx` 函数**，例：
+```python
+@app.get("/status")
+def status():
+    return {"online": True, "name": "小D"}
+```
+保存重启后访问 `/status` 即生效，并自动出现在 `/docs`。
+
+**与测试的关系**：装饰器决定的"方法+路径"就是第 6 章 `requests.post(".../chat")` 要一一对应的对象。
