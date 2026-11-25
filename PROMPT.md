@@ -39,26 +39,36 @@
 /workspace
 ├── PROMPT.md                  ← 本文件：新对话接续入口（背景+规则+进度入口）
 ├── ai-learning.md             ← 项目总览：背景、目标、技术选型、约定
-├── app/                       ← 第一部分：AI 客服应用（教材）
-│   └── README.md              ← 目录占位说明；第 2~4 章逐章填充代码
-│   （未来内容：main.py FastAPI 后端、static/index.html 聊天页、requirements.txt）
-├── tests/                     ← 第二部分：自动化测试（重点）
-│   └── README.md              ← 目录占位说明；第 6~9 章逐章填充脚本
-│   （未来内容：test_api/ 接口测试、test_e2e/ Playwright 脚本、eval/ 效果评估）
+├── app/                       ← 第一部分：AI 客服应用（教材，第2~4章已完成）
+│   ├── hello_deepseek.py      ← 第2章：命令行直连大模型脚本
+│   ├── main.py                ← 第3~4章：FastAPI 后端（/chat、/chat/stream、/）
+│   ├── static/index.html      ← 聊天前端（history 自存 + SSE 逐字渲染）
+│   └── requirements.txt       ← requests + fastapi + uvicorn
+├── tests/                     ← 第二部分：自动化测试（重点，第5章起逐章填充）
+│   └── README.md              ← 各章将产出：test_api/、test_e2e/、eval/、CI、RAG测试
 └── docs/
     ├── curriculum.md          ← 教学大纲（带复选框，完成一章打一个勾）
-    └── lessons/               ← 每章一个讲义文档
-        └── ch01-链路全景.md    ← 第1章讲义+追问记录（后续章节依次新增 ch02、ch03…）
+    └── lessons/               ← 每章一个讲义（ch01~ch04 已存在，含追问记录）
 ```
 
 ## 当前进度（AI 读这里判断下一步）
 
-- 大纲：见 `docs/curriculum.md`，已打勾到 **第 1 章**。
-- **下一步 = 第 2 章《第一次调用 DeepSeek》**，要点：
-  1. 带学习者注册 DeepSeek、获取 API Key；
-  2. 在 `app/` 写 20 行 Python 脚本直连大模型；
-  3. 逐字段拆解请求/响应 JSON（messages 角色、temperature、token 用量）；
-  4. 讲义写入 `docs/lessons/ch02-第一次调用大模型.md`。
+- 大纲：见 `docs/curriculum.md`，已打勾到 **第 4 章**（第一部分"造教材"收官，被测系统已成型）。
+- **下一步 = 第 5 章《测试策略总览》**（第二部分开篇，不写代码先画地图）：
+  1. 讲透"确定性 vs 非确定性"：AI 应用测试与传统测试的分岔点；
+  2. 产出针对本被测系统的完整测试计划（写入 `tests/PLAN.md`）；
+  3. 讲义写入 `docs/lessons/ch05-测试策略总览.md`。
+- 被测系统现状：`app/main.py` 提供 `POST /chat`（非流式，接口测试靶子）、
+  `POST /chat/stream`（SSE 流式）、`GET /`（聊天页）；人设=电商客服小D，只答售后；
+  `API Key` 在 `.env`（已 gitignore，若沙箱重置需向学习者重取）。
+- 已知留白（教学刻意保留）：空输入未拒绝、流中途失败无错误信号——第 6 章用例素材。
+
+## 工作场景对齐（影响优先级）
+
+学习者工作中要测的 AI 客服**带知识库/RAG 检索**，因此：
+- 第 8 章效果评估要重点讲"忠实度/有据可依"；
+- **第 10 章《迷你 RAG 及其测试》是必修**（不是选修）：检索环节确定性可精确断言，
+  生成环节非确定性用 LLM-as-Judge——正好演示"隔离确定与不确定"方法论。
 
 ## 给学习者的话
 

@@ -9,3 +9,4 @@
 | 第 7 章 | `test_e2e/`：Playwright 模拟用户在网页聊天 |
 | 第 8 章 | `eval/`：评测集 + LLM-as-Judge 回答质量评估 |
 | 第 9 章 | CI：GitHub Actions 定时/触发跑测试 |
+| 第 10 章 | 检索召回测试（确定性）+ 回答忠实度测试（LLM-as-Judge） |
