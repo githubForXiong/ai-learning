@@ -4,7 +4,7 @@ import os
 import requests
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 app = FastAPI(title="AI客服教材")
 
@@ -31,7 +31,7 @@ class ChatMessage(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    message: str
+    message: str = Field(min_length=1)   # 修复R4：空输入不进大模型（第6章红灯用例驱动）
     history: list[ChatMessage] = []
 
 
@@ -76,7 +76,10 @@ def chat_stream(body: ChatRequest):
         for line in resp.iter_lines(decode_unicode=True):
             if not line or not line.startswith("data: "):
                 continue
-            payload = json.loads(line[len("data: "):])
+            payload_str = line[len("data: "):]
+            if payload_str == "[DONE]":   # 上游结束哨兵：不能 json.loads，直接停
+                break
+            payload = json.loads(payload_str)
             if payload.get("object") == "chat.completion.chunk":
                 delta = payload["choices"][0]["delta"].get("content", "")
                 if delta:

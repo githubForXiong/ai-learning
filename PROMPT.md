@@ -53,14 +53,16 @@
 
 ## 当前进度（AI 读这里判断下一步）
 
-- 大纲：见 `docs/curriculum.md`，已打勾到 **第 5 章**（测试计划已产出：`tests/PLAN.md`）。
-- **下一步 = 第 6 章《接口层测试：pytest + requests 测 /chat》**，要点：
-  1. 搭 pytest 骨架（`tests/test_api/`）、conftest.py 管理 base_url 与 Key；
-  2. L1 单元测试：`build_payload` 拼装 + `history[-10:]` 裁剪（精确断言）；
-  3. L2 接口测试：正常/缺字段 422/空输入/超长/上游 502（Mock）；
-  4. **第一个先红后绿**：空输入未拒绝的用例 → 回 `app/main.py` 加校验 → 变绿；
-  5. 流式接口的解析与断言（拼接 delta 还原全文）；
-  6. 讲义写入 `docs/lessons/ch06-接口层测试.md`。
+- 大纲：见 `docs/curriculum.md`，已打勾到 **第 6 章**（接口测试套件已建，16 条用例全绿）。
+- **下一步 = 第 7 章《Web E2E 测试：Playwright 模拟真实用户聊天》**，要点：
+  1. 安装 Playwright(Python) 与浏览器内核；
+  2. 覆盖"打开页面 → 输入 → 发送 → 逐字渲染 → 回答完成"闭环；
+  3. 重点：流式输出的等待策略（等 [DONE]/按钮恢复再断言全文）、定位器与断言；
+  4. 讲义写入 `docs/lessons/ch07-E2E测试.md`。
+- 测试基础设施现状：`pytest tests/` 一键跑全套；`tests/conftest.py` 起两台服务器
+  （8123 正常 / 8124 坏Key 触发 502）。运行前需 `source .env`。
+- 第 6 章已修复两处缺陷：空输入未拒绝（Field min_length=1）、SSE 流截断
+  （event_gen 对上游 [DONE] 哨兵误用 json.loads）。
 - 测试计划要点（写代码前先读）：`tests/PLAN.md` 的 R1~R9 风险、A/B/C/D 断言分级、
   用例模板 7 字段。
 - 被测系统现状：`app/main.py` 提供 `POST /chat`（非流式，接口测试靶子）、
