@@ -53,11 +53,16 @@
 
 ## 当前进度（AI 读这里判断下一步）
 
-- 大纲：见 `docs/curriculum.md`，已打勾到 **第 4 章**（第一部分"造教材"收官，被测系统已成型）。
-- **下一步 = 第 5 章《测试策略总览》**（第二部分开篇，不写代码先画地图）：
-  1. 讲透"确定性 vs 非确定性"：AI 应用测试与传统测试的分岔点；
-  2. 产出针对本被测系统的完整测试计划（写入 `tests/PLAN.md`）；
-  3. 讲义写入 `docs/lessons/ch05-测试策略总览.md`。
+- 大纲：见 `docs/curriculum.md`，已打勾到 **第 5 章**（测试计划已产出：`tests/PLAN.md`）。
+- **下一步 = 第 6 章《接口层测试：pytest + requests 测 /chat》**，要点：
+  1. 搭 pytest 骨架（`tests/test_api/`）、conftest.py 管理 base_url 与 Key；
+  2. L1 单元测试：`build_payload` 拼装 + `history[-10:]` 裁剪（精确断言）；
+  3. L2 接口测试：正常/缺字段 422/空输入/超长/上游 502（Mock）；
+  4. **第一个先红后绿**：空输入未拒绝的用例 → 回 `app/main.py` 加校验 → 变绿；
+  5. 流式接口的解析与断言（拼接 delta 还原全文）；
+  6. 讲义写入 `docs/lessons/ch06-接口层测试.md`。
+- 测试计划要点（写代码前先读）：`tests/PLAN.md` 的 R1~R9 风险、A/B/C/D 断言分级、
+  用例模板 7 字段。
 - 被测系统现状：`app/main.py` 提供 `POST /chat`（非流式，接口测试靶子）、
   `POST /chat/stream`（SSE 流式）、`GET /`（聊天页）；人设=电商客服小D，只答售后；
   `API Key` 在 `.env`（已 gitignore，若沙箱重置需向学习者重取）。
