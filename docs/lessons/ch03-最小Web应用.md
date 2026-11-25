@@ -97,3 +97,30 @@ def status():
 保存重启后访问 `/status` 即生效，并自动出现在 `/docs`。
 
 **与测试的关系**：装饰器决定的"方法+路径"就是第 6 章 `requests.post(".../chat")` 要一一对应的对象。
+
+### Q2：对代码中涉及的 FastAPI 部分做详细用法解析
+
+按"一个请求的旅程"顺序拆解 main.py 的 8 个 FastAPI 要点：
+
+1. **三个 import**：`FastAPI`(应用本体)、`HTTPException`(主动抛指定状态码的错)、`FileResponse`(把文件作为响应发出)、`BaseModel`(定义数据形状，配合校验)。
+   - 关键区别：`raise Exception`→500崩溃；`raise HTTPException(code,detail)`→优雅返回指定码+JSON错误。
+
+2. **`app = FastAPI(title=...)`**：创建应用对象（总台），路由都挂在它上。
+
+3. **`class ChatRequest(BaseModel): message: str`**：请求的"门禁表单"。FastAPI 用它自动做三件事——解析JSON→对象、校验(缺字段/类型错→自动422)、生成/docs文档。
+   - 校验表：`{"message":"x"}`放行 / `{}`→422 / `{"message":123}`→422 / `{"message":""}`放行(空串缺陷)。
+
+4. **`@app.post("/chat")`**：路由装饰器，登记"POST+/chat→chat函数"。
+
+5. **`def chat(body: ChatRequest)`**：参数类型注解触发**自动解析+校验**（依赖注入雏形）。框架把请求体JSON变成ChatRequest对象，函数内直接 `body.message`，无需手动 json.loads/判空。
+
+6. **`return {...}`**：直接返回字典，FastAPI 自动序列化成JSON + 设 Content-Type + 默认200。无需手动 json.dumps。
+
+7. **`raise HTTPException(status_code=502, detail=...)`**：上游大模型出错时主动抛502。测试视角：第6章断言 `status_code==502` 且 `detail` 存在。
+
+8. **`@app.get("/")` + `return FileResponse(...)`**：GET根路径返回HTML文件。对比 `/chat` 的 `return dict`(JSON)——两种返回值对应两种响应类型。
+
+**uvicorn 的角色**：FastAPI 只是应用，不能自己监听端口；uvicorn(ASGI服务器)负责收发HTTP并转交。
+`python3 -m uvicorn app.main:app` 中 `app.main`=模块、末尾 `app`=变量名。类比：FastAPI是菜谱，uvicorn是灶台。
+
+**请求旅程**：fetch→uvicorn收→路由匹配→类型注解解析校验(不过422)→函数体调DeepSeek→出错抛HTTPException(502)/成功return dict→FastAPI转JSON→发回浏览器。
