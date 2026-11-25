@@ -32,6 +32,7 @@
 | 效果评估 | 评测集 + LLM-as-Judge |
 | 分支策略 | 直接在 main 开发推送，无 PR 流程 |
 | 远程仓库 | https://github.com/githubForXiong/ai-learning |
+| 备份拓扑 | 三点备份：云端沙箱 ↔ GitHub ↔ 学习者本地克隆（`E:\vibe coding\ai-learning`） |
 
 ## 目录结构与各文件用途
 
@@ -81,3 +82,11 @@
 
 换设备只需两步：`git clone https://github.com/githubForXiong/ai-learning` →
 对新对话说："读 PROMPT.md，我们继续这个项目"。
+
+## 本地备份与同步约定（学习者家里 GitHub 网络不稳）
+
+- 学习者在本地 `E:\vibe coding\ai-learning` 存了一份克隆，与云端、GitHub 构成三点备份。
+- 分工：**云端负责写代码 + push**（云端网络稳定）；**本地主要负责 pull 备份/离线看讲义/本地跑**。
+- 本地几乎不 push；若本地改了想保留，先 `git pull` 再 commit push，然后回云端对话说"帮我 git pull"。
+- 本地要跑应用需自建 `.env`（`DEEPSEEK_API_KEY=sk-...`，此文件不进仓库）+ `pip install -r app/requirements.txt`。
+- 冲突预防：本地动手前先 `git pull`；云端每章结束必 push。两边不同时编辑同一文件即安全。
