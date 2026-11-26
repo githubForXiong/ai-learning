@@ -89,7 +89,11 @@
 
 ## 本地备份与同步约定（双端一致：本地+云端+GitHub 三处同步）
 
-- 本地克隆：`E:\vibe coding\ai-learning`（已建），与云端沙箱、GitHub 构成三点同步。
+- 本地克隆（多台机器，路径因机器而异，git 同步只认远程 URL 不认路径）：
+  - 公司：`E:\vibe coding\ai-learning`（已建）
+  - 家里：路径待学习者补充
+- **AI 无法直接写学习者的本地**：云端变更由 AI push 到 GitHub，学习者本地自行 `git pull`；
+  AI 的职责是"每次变更必 push + 回复末尾提醒 pull"。
 - **目标：任何变更最终三处一致**。机制：变更方 commit+push，另一方 pull。
 - 日常节奏：
   - 云端每章/每次追问记录结束 → AI push → 回复末尾提醒学习者"本地执行 git pull"；
