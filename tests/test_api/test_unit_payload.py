@@ -8,7 +8,12 @@ import pytest
 
 pytestmark = pytest.mark.fast   # 整层归入快速层
 
-from app.main import build_payload, ChatRequest, SYSTEM_PROMPT, MAX_HISTORY
+# 重构后：业务函数在 chat_service，配置在 config，数据契约在 schemas
+from app.chat_service import build_payload
+from app.config import MAX_HISTORY, SYSTEM_PROMPT, get_settings
+from app.schemas import ChatRequest
+
+SETTINGS = get_settings()
 
 
 def make_history(n: int):
@@ -19,7 +24,7 @@ class TestBuildPayload:
     def test_messages_order_system_first_user_last(self):
         """messages 必须以 system 开头、本轮 user 结尾。"""
         req = ChatRequest(message="能退款吗", history=[])
-        msgs = build_payload(req)["messages"]
+        msgs = build_payload(req, SETTINGS)["messages"]
         assert msgs[0]["role"] == "system"
         assert msgs[-1] == {"role": "user", "content": "能退款吗"}
         assert len(msgs) == 2  # 无历史时只有 system + 本轮
@@ -28,7 +33,7 @@ class TestBuildPayload:
         """有历史时：system + 历史(按序) + 本轮user。"""
         history = make_history(3)
         req = ChatRequest(message="新问题", history=history)
-        msgs = build_payload(req)["messages"]
+        msgs = build_payload(req, SETTINGS)["messages"]
         assert len(msgs) == 1 + 3 + 1
         assert msgs[1]["content"] == "第0问"   # 历史保持原顺序
         assert msgs[3]["content"] == "第2问"
@@ -38,7 +43,7 @@ class TestBuildPayload:
         """滑动窗口：12条历史只保留最后10条（边界值：正好卡在 MAX_HISTORY 线上）。"""
         history = make_history(12)
         req = ChatRequest(message="新问题", history=history)
-        msgs = build_payload(req)["messages"]
+        msgs = build_payload(req, SETTINGS)["messages"]
         assert len(msgs) == 1 + MAX_HISTORY + 1
         assert msgs[1]["content"] == "第2问"   # 第0、1条应被裁掉
         assert msgs[2]["content"] == "第3问"
@@ -46,14 +51,14 @@ class TestBuildPayload:
     def test_exactly_max_history_not_trimmed(self):
         """边界值：正好10条 → 一条不裁。"""
         req = ChatRequest(message="新问题", history=make_history(MAX_HISTORY))
-        msgs = build_payload(req)["messages"]
+        msgs = build_payload(req, SETTINGS)["messages"]
         assert len(msgs) == 1 + MAX_HISTORY + 1
         assert msgs[1]["content"] == "第0问"
 
     def test_fixed_params(self):
         """模型参数是配置，也要有回归保护（改 temperature 应是有意识的决定）。"""
         req = ChatRequest(message="x", history=[])
-        payload = build_payload(req)
+        payload = build_payload(req, SETTINGS)
         assert payload["model"] == "deepseek-chat"
         assert payload["temperature"] == 0.3
         assert payload["max_tokens"] == 500

@@ -146,6 +146,30 @@ on:
 给客服挂上迷你 RAG（知识库检索），然后补两类测试——
 **检索召回测试**（确定性，可精确断言）和**忠实度测试**（回答是否基于检索文档，LLM-as-Judge）。
 
+## 10. 附：应用架构重构（v0.5）
+
+针对"单文件应用没有测试接缝"的问题，把应用拆成六层（HTTP 契约不变）：
+
+```
+config.py        配置：Settings / 人设+版本号 / 窗口上限
+errors.py        错误模型：AppError / UpstreamError / LLMTimeoutError + 统一 handler
+schemas.py       数据契约：ChatMessage / ChatRequest / ChatReply
+llm.py           LLMClient 协议 + DeepSeekClient（SSE 解析与 [DONE] 特判在此）
+chat_service.py  业务：build_payload（纯函数）/ ChatService.reply / .stream
+main.py          接口：create_app(llm=...) 工厂、request_id 中间件、/healthz、路由
+```
+
+三个关键收益：
+1. **可注入**：`create_app(llm=FakeLLM())` 起"假大脑"服务，业务测试零成本零网络；
+2. **可区分**：错误体变 `{"error":{code,message,request_id}}`，502 能细分超时/不可用；
+3. **可追溯**：`X-Request-ID` 贯穿响应与错误体，出问题能定位到单次请求。
+
+**重构后 26 条测试全绿，且测试只改了 import 和一处错误码断言**——
+这正说明分层没有破坏对外契约，只是把内部实现换成了更好的结构。
+
+待补（生产化清单）：服务端会话存储、重试/退避/限流、结构化日志、jsonschema 契约校验、
+respx Mock、pytest-html/allure 报告、coverage 门禁、POM + parametrize、ragas/deepeval。
+
 ## 追问记录
 
 （本章暂无追问。后续学习者的提问与解答会追加到这里。）

@@ -1,94 +1,55 @@
-import json
-import os
+"""接口层：只做路由注册、中间件、健康检查，业务在 chat_service 里。
 
-import requests
-from fastapi import FastAPI, HTTPException
+create_app(llm=...) 是给测试用的注入口：可以塞 FakeLLM 起一个"假大脑"的服务。
+"""
+import logging
+import uuid
+
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, StreamingResponse
-from pydantic import BaseModel, Field
 
-app = FastAPI(title="AI客服教材")
+from app.chat_service import ChatService
+from app.config import get_settings
+from app.errors import register_error_handlers
+from app.llm import DeepSeekClient
+from app.schemas import ChatReply, ChatRequest
 
-DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
-
-SYSTEM_PROMPT = (
-    "你是电商客服小D。规则："
-    "1) 只回答售后相关问题（退款、换货、物流、质量问题）；"
-    "2) 与售后无关的话题，礼貌拒绝并引导回售后问题；"
-    "3) 不编造公司政策，不确定的信息引导用户联系人工客服。"
-)
-
-MAX_HISTORY = 10  # 滑动窗口：最多带上最近10条历史
-
-HEADERS = {
-    "Authorization": f"Bearer {os.environ.get('DEEPSEEK_API_KEY', '')}",
-    "Content-Type": "application/json",
-}
+logger = logging.getLogger("ai_kf")
 
 
-class ChatMessage(BaseModel):
-    role: str
-    content: str
+def create_app(llm=None) -> FastAPI:
+    settings = get_settings()
+    service = ChatService(llm or DeepSeekClient(settings), settings)
+
+    app = FastAPI(title="AI客服教材", version="0.5")
+    register_error_handlers(app)
+
+    @app.middleware("http")
+    async def request_id_middleware(request: Request, call_next):
+        rid = request.headers.get("X-Request-ID") or uuid.uuid4().hex[:12]
+        request.state.request_id = rid
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = rid
+        return response
+
+    @app.get("/healthz")
+    def healthz():
+        # 探活接口：不调大模型，用于部署编排与冒烟检查
+        return {"status": "ok", "prompt_version": settings.prompt_version}
+
+    @app.post("/chat", response_model=ChatReply)
+    def chat(body: ChatRequest):
+        return service.reply(body)
+
+    @app.post("/chat/stream")
+    def chat_stream(body: ChatRequest):
+        return StreamingResponse(service.stream(body), media_type="text/event-stream")
+
+    @app.get("/")
+    def home():
+        return FileResponse("app/static/index.html")
+
+    return app
 
 
-class ChatRequest(BaseModel):
-    message: str = Field(min_length=1)   # 修复R4：空输入不进大模型（第6章红灯用例驱动）
-    history: list[ChatMessage] = []
-
-
-def build_payload(body: ChatRequest, stream: bool = False) -> dict:
-    """把 人设 + 裁剪后的历史 + 本次提问 拼成大模型要的 messages 数组。"""
-    trimmed = [m.model_dump() for m in body.history[-MAX_HISTORY:]]
-    return {
-        "model": "deepseek-chat",
-        "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            *trimmed,
-            {"role": "user", "content": body.message},
-        ],
-        "temperature": 0.3,
-        "max_tokens": 500,
-        "stream": stream,
-    }
-
-
-@app.post("/chat")
-def chat(body: ChatRequest):
-    resp = requests.post(DEEPSEEK_URL, headers=HEADERS,
-                         json=build_payload(body), timeout=30)
-    if resp.status_code != 200:
-        raise HTTPException(status_code=502, detail="大模型服务异常")
-    data = resp.json()
-    return {
-        "reply": data["choices"][0]["message"]["content"],
-        "usage": data["usage"],
-    }
-
-
-@app.post("/chat/stream")
-def chat_stream(body: ChatRequest):
-    resp = requests.post(DEEPSEEK_URL, headers=HEADERS,
-                         json=build_payload(body, stream=True),
-                         stream=True, timeout=60)
-    if resp.status_code != 200:
-        raise HTTPException(status_code=502, detail="大模型服务异常")
-
-    def event_gen():
-        for line in resp.iter_lines(decode_unicode=True):
-            if not line or not line.startswith("data: "):
-                continue
-            payload_str = line[len("data: "):]
-            if payload_str == "[DONE]":   # 上游结束哨兵：不能 json.loads，直接停
-                break
-            payload = json.loads(payload_str)
-            if payload.get("object") == "chat.completion.chunk":
-                delta = payload["choices"][0]["delta"].get("content", "")
-                if delta:
-                    yield f"data: {json.dumps({'delta': delta}, ensure_ascii=False)}\n\n"
-        yield "data: [DONE]\n\n"
-
-    return StreamingResponse(event_gen(), media_type="text/event-stream")
-
-
-@app.get("/")
-def home():
-    return FileResponse("app/static/index.html")
+app = create_app()

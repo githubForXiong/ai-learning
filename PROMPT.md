@@ -44,10 +44,14 @@
 /workspace
 ├── PROMPT.md                  ← 本文件：新对话接续入口（背景+规则+进度入口）
 ├── ai-learning.md             ← 项目总览：背景、目标、技术选型、约定
-├── app/                       ← 第一部分：AI 客服应用（教材，第2~4章已完成）
-│   ├── hello_deepseek.py      ← 第2章：命令行直连大模型脚本
-│   ├── main.py                ← 第3~4章：FastAPI 后端（/chat、/chat/stream、/）
-│   ├── static/index.html      ← 聊天前端（history 自存 + SSE 逐字渲染）
+├── app/                       ← AI 客服应用（v0.5 已分层重构）
+│   ├── config.py              ← 配置：Settings/人设+版本号/窗口上限
+│   ├── errors.py              ← 统一错误模型（code/message/request_id）
+│   ├── schemas.py             ← 数据契约 ChatMessage/ChatRequest/ChatReply
+│   ├── llm.py                 ← LLMClient 协议 + DeepSeekClient（SSE 解析）
+│   ├── chat_service.py        ← 业务：build_payload / ChatService
+│   ├── main.py                ← 接口：create_app(llm=...) 工厂、中间件、/healthz、路由
+│   ├── static/index.html      ← 聊天前端
 │   └── requirements.txt       ← requests + fastapi + uvicorn
 ├── tests/                     ← 第二部分：自动化测试（重点，第5章起逐章填充）
 │   └── README.md              ← 各章将产出：test_api/、test_e2e/、eval/、CI、RAG测试
@@ -65,9 +69,15 @@
   3. 测试①检索召回：确定性，精确断言"问X应召回文档Y"；
   4. 测试②忠实度：回答是否只基于检索到的文档（LLM-as-Judge，防幻觉）；
   5. 讲义写入 `docs/lessons/ch10-迷你RAG与测试.md`。
+- **v0.5 架构重构已完成**（第 9 章后）：业务层与 LLM 客户端解耦，`create_app(llm=FakeLLM())`
+  可零成本起假服务；错误统一为 `{"error":{code,message,request_id}}`；新增 `/healthz`、
+  `X-Request-ID` 透传。重构后 26 条测试全绿（新增 4 条 FakeLLM 用例）。
+- 待补（生产化清单，按需推进）：服务端会话存储、重试/退避/限流、结构化日志、
+  jsonschema 契约校验、respx Mock、pytest-html/allure 报告、coverage 门禁、
+  POM + parametrize、ragas/deepeval 替代手搓裁判。
 - 测试体系现状：
-  - `pytest` 默认跑 22 条（fast 13 + slow 9），排除 eval；
-  - `pytest -m fast` 13 条（无 Key 也能跑）；`pytest -m eval -s` 跑评估（约24次调用）；
+  - `pytest` 默认跑 26 条（fast 17 + slow 9），排除 eval；
+  - `pytest -m fast` 17 条（无 Key 也能跑）；`pytest -m eval -s` 跑评估（约24次调用）；
   - 无 Key 时 needs_key 用例自动 skip（conftest 钩子），不会红；
   - CI：`.github/workflows/ci.yml`（push 触发）、`nightly.yml`（每日 02:00 北京时间跑 eval）。
 - 环境坑位备忘（沙箱重置后常遇到）：需重装 `fastapi uvicorn playwright`；

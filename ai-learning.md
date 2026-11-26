@@ -9,6 +9,22 @@
   1. **AI 客服应用**（教材）：最小结构、最简输入输出的 Web 应用即可，为测试部分服务。
   2. **AI 客服自动化测试**（重点）：接口层测试 + Web E2E 测试 + AI 效果评估测试。
 
+## 应用架构（v0.5，第 9 章后重构）
+
+```
+app/
+├── config.py        配置层：Settings(dataclass)、人设+版本号、窗口上限
+├── errors.py        错误模型：AppError / UpstreamError / LLMTimeoutError + 统一 handler
+├── schemas.py       数据契约：ChatMessage / ChatRequest / ChatReply
+├── llm.py           LLM 客户端：LLMClient 协议 + DeepSeekClient（SSE 解析在此）
+├── chat_service.py  业务层：build_payload（纯函数）/ ChatService.reply / .stream
+├── main.py          接口层：create_app(llm=...) 工厂、request_id 中间件、/healthz、路由
+└── static/index.html 前端
+```
+
+设计原则：**业务只依赖 LLMClient 协议**，测试注入 FakeLLM 即可零成本、零网络验证业务逻辑。
+`create_app(llm=FakeLLM())` 可起一个"假大脑"服务器。
+
 ## 技术选型
 
 | 层 | 选择 | 理由 |
@@ -66,4 +82,6 @@
   幻觉 0；全套 25 条通过）。
 - 2026-11-26：**第 9 章完成**（pytest markers 分层、无 Key 自动跳过、GitHub Actions
   提交触发+每日评估；主线 9 章收官）。
+- 2026-11-26：**应用分层重构（v0.5）**——config/errors/schemas/llm/chat_service/main 六层；
+  业务与 LLM 解耦，新增 FakeLLM 零成本用例 4 条；全套 26 条通过。
 - 下一步：第 10 章《迷你 RAG：知识库检索 + 检索与忠实度测试》（工作强相关，必修）。

@@ -39,7 +39,9 @@ def test_upstream_failure_returns_502(badkey_base_url):
     r = requests.post(f"{badkey_base_url}/chat",
                       json={"message": "能退款吗"}, timeout=30)
     assert r.status_code == 502                      # A
-    assert "detail" in r.json()                      # A：错误信息结构
+    body = r.json()
+    assert body["error"]["code"] == "UPSTREAM_UNAVAILABLE"   # A：机器可读的错误码
+    assert body["error"]["request_id"]                       # A：可追溯
 
 
 # ---------- B级：真实调用（内容不确定，只断言结构与约束） ----------

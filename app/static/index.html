@@ -58,7 +58,8 @@
         });
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({}));
-          botDiv.textContent = "出错了：" + (err.detail || resp.status);
+          const msg = (err.error && err.error.message) || err.detail || resp.status;
+          botDiv.textContent = "出错了：" + msg;
           send.disabled = false;
           return;
         }
