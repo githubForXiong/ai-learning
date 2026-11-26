@@ -17,7 +17,12 @@ app/
 ├── errors.py        错误模型：AppError / UpstreamError / LLMTimeoutError + 统一 handler
 ├── schemas.py       数据契约：ChatMessage / ChatRequest / ChatReply
 ├── llm.py           LLM 客户端：LLMClient 协议 + DeepSeekClient（SSE 解析在此）
-├── chat_service.py  业务层：build_payload（纯函数）/ ChatService.reply / .stream
+├── chat_service.py  业务编排：审核 → 路由 → LLM → 脱敏（build_payload 为纯函数）
+├── router.py        意图路由：faq / order / human / llm
+├── orders.py        订单查询（模拟工具调用，3 条样例订单）
+├── moderation.py    输入违规拦截 + PII 脱敏
+├── kb/faq.json      8 条 FAQ 直答库
+
 ├── main.py          接口层：create_app(llm=...) 工厂、request_id 中间件、/healthz、路由
 └── static/index.html 前端
 ```
@@ -84,4 +89,6 @@ app/
   提交触发+每日评估；主线 9 章收官）。
 - 2026-11-26：**应用分层重构（v0.5）**——config/errors/schemas/llm/chat_service/main 六层；
   业务与 LLM 解耦，新增 FakeLLM 零成本用例 4 条；全套 26 条通过。
-- 下一步：第 10 章《迷你 RAG：知识库检索 + 检索与忠实度测试》（工作强相关，必修）。
+- 2026-11-26：**业务能力扩展（v0.6）**——意图路由(FAQ/订单/人工/LLM)、8条FAQ直答、
+  订单查询、转人工工单、输入审核、PII脱敏；新增 9 条零成本路由用例，全套 35 条全绿。
+- 下一步：① 补服务端会话/鉴权/限流（P2）→ ② 第 10 章旁路式 RAG（方案A）+ ragas 忠实度测试。

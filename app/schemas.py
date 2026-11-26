@@ -16,3 +16,5 @@ class ChatReply(BaseModel):
     reply: str
     usage: dict = {}
     prompt_version: str = ""
+    # 可观测性：这次回答走了哪条路径（llm / faq / order / human）
+    route: str = "llm"

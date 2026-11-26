@@ -49,7 +49,11 @@
 │   ├── errors.py              ← 统一错误模型（code/message/request_id）
 │   ├── schemas.py             ← 数据契约 ChatMessage/ChatRequest/ChatReply
 │   ├── llm.py                 ← LLMClient 协议 + DeepSeekClient（SSE 解析）
-│   ├── chat_service.py        ← 业务：build_payload / ChatService
+│   ├── chat_service.py        ← 业务编排：审核 → 路由 → LLM → 脱敏
+│   ├── router.py              ← 意图路由：faq/order/human/llm（首轮+短问题才 FAQ）
+│   ├── orders.py              ← 订单查询（模拟工具调用）
+│   ├── moderation.py          ← 输入违规拦截 + 手机号/身份证脱敏
+│   ├── kb/faq.json            ← 8 条 FAQ 直答库
 │   ├── main.py                ← 接口：create_app(llm=...) 工厂、中间件、/healthz、路由
 │   ├── static/index.html      ← 聊天前端
 │   └── requirements.txt       ← requests + fastapi + uvicorn
@@ -69,9 +73,11 @@
   3. 测试①检索召回：确定性，精确断言"问X应召回文档Y"；
   4. 测试②忠实度：回答是否只基于检索到的文档（LLM-as-Judge，防幻觉）；
   5. 讲义写入 `docs/lessons/ch10-迷你RAG与测试.md`。
-- **v0.5 架构重构已完成**（第 9 章后）：业务层与 LLM 客户端解耦，`create_app(llm=FakeLLM())`
-  可零成本起假服务；错误统一为 `{"error":{code,message,request_id}}`；新增 `/healthz`、
-  `X-Request-ID` 透传。重构后 26 条测试全绿（新增 4 条 FakeLLM 用例）。
+- **v0.5 分层重构** + **v0.6 业务能力扩展** 已完成：
+  - v0.5：业务与 LLM 客户端解耦（`create_app(llm=FakeLLM())`）、统一错误体、`/healthz`、request_id
+  - v0.6：意图路由（faq/order/human/llm）、8 条 FAQ 直答、订单查询、转人工工单、输入审核、PII 脱敏
+  - 测试 35 条全绿；因直答不调模型，全套耗时 17s → 10.7s
+  - 注意：FAQ 直答改变了部分回答来源，**eval 评测集需重跑并重定基线阈值**
 - 待补（生产化清单，按需推进）：服务端会话存储、重试/退避/限流、结构化日志、
   jsonschema 契约校验、respx Mock、pytest-html/allure 报告、coverage 门禁、
   POM + parametrize、ragas/deepeval 替代手搓裁判。

@@ -20,6 +20,9 @@ pytestmark = pytest.mark.fast
 
 SETTINGS = Settings(api_key="fake-key-for-test")
 
+# 会走 LLM 的开放问题（长度>15、不含 FAQ 关键词），否则会被意图路由短路
+LLM_MSG = "我遇到一个比较特殊的售后情况，想请你帮我分析一下"
+
 
 class FakeLLM:
     """假大脑：返回固定内容，并记录收到的 messages 供断言。"""
@@ -53,7 +56,7 @@ class BrokenLLM:
 
 def test_reply_contract_and_payload_wiring():
     llm = FakeLLM()
-    out = ChatService(llm, SETTINGS).reply(ChatRequest(message="能退款吗"))
+    out = ChatService(llm, SETTINGS).reply(ChatRequest(message=LLM_MSG))
 
     assert out.reply == "可以申请退款。"
     assert out.usage["total_tokens"] == 12
@@ -61,20 +64,20 @@ def test_reply_contract_and_payload_wiring():
 
     sent = llm.calls[0]
     assert sent[0]["role"] == "system"                       # 人设必须在最前
-    assert sent[-1] == {"role": "user", "content": "能退款吗"}  # 本轮问题在最后
+    assert sent[-1] == {"role": "user", "content": LLM_MSG}  # 本轮问题在最后
 
 
 def test_system_prompt_is_configurable():
     """人设来自配置而不是硬编码 → 换 prompt 不需要改业务代码。"""
     custom = Settings(api_key="fake", system_prompt="你是严格的测试人设")
     llm = FakeLLM()
-    ChatService(llm, custom).reply(ChatRequest(message="你好"))
+    ChatService(llm, custom).reply(ChatRequest(message=LLM_MSG))
     assert llm.calls[0][0]["content"] == "你是严格的测试人设"
 
 
 def test_stream_frames_are_well_formed():
     svc = ChatService(FakeLLM(deltas=("退", "款")), SETTINGS)
-    frames = list(svc.stream(ChatRequest(message="退款")))
+    frames = list(svc.stream(ChatRequest(message=LLM_MSG)))
 
     assert frames[-1] == "data: [DONE]\n\n"     # 协议以哨兵结束
     assert all(f.startswith("data: ") and f.endswith("\n\n") for f in frames)
@@ -84,4 +87,4 @@ def test_stream_frames_are_well_formed():
 def test_upstream_error_propagates():
     svc = ChatService(BrokenLLM(), SETTINGS)
     with pytest.raises(UpstreamError):
-        svc.reply(ChatRequest(message="退款"))
+        svc.reply(ChatRequest(message=LLM_MSG))

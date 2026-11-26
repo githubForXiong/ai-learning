@@ -30,6 +30,12 @@ class LLMTimeoutError(UpstreamError):
     message = "大模型服务超时"
 
 
+class InputBlockedError(AppError):
+    code = "INPUT_BLOCKED"
+    status = 400
+    message = "输入包含违规内容"
+
+
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     def handle_app_error(request: Request, exc: AppError):

@@ -1,13 +1,21 @@
-"""业务层：只负责"拼 payload / 调 LLM / 组装响应"，不关心 HTTP 细节。
+"""业务层：先审核、再路由、最后才调模型。
 
-依赖注入的是 LLMClient 协议，而不是具体的 DeepSeekClient——
-所以测试里可以塞一个 FakeLLM，一行网络请求都不发。
+调用顺序很重要：
+1. 内容审核（最便宜，且必须在花钱之前）
+2. 意图路由（订单/FAQ/转人工 → 直接答，不烧 token）
+3. 兜底才交给 LLM
+4. 输出脱敏（PII 不落前端）
 """
 import json
 
 from app.config import Settings, get_settings
+from app.errors import AppError
 from app.llm import LLMClient
+from app.moderation import check_input, mask_output
+from app.router import route
 from app.schemas import ChatReply, ChatRequest
+
+FAQ_CHUNK_SIZE = 12   # 直答也走流式：按固定长度切块，前端渲染逻辑无需区分来源
 
 
 def build_payload(body: ChatRequest, settings: Settings, stream: bool = False) -> dict:
@@ -36,16 +44,42 @@ class ChatService:
         self.llm = llm
         self.settings = settings or get_settings()
 
+    def _decide(self, body: ChatRequest) -> tuple[str, str | None]:
+        check_input(body.message)                      # 违规输入直接 400，不花钱
+        return route(body.message, body.history)
+
     def reply(self, body: ChatRequest) -> ChatReply:
+        kind, canned = self._decide(body)
+        if canned is not None:
+            return ChatReply(
+                reply=mask_output(canned),
+                usage={},
+                prompt_version=self.settings.prompt_version,
+                route=kind,
+            )
+
         payload = build_payload(body, self.settings)
         result = self.llm.complete(payload["messages"])
         return ChatReply(
-            reply=result.content,
+            reply=mask_output(result.content),
             usage=result.usage,
             prompt_version=self.settings.prompt_version,
+            route=kind,
         )
 
     def stream(self, body: ChatRequest):
+        kind, canned = self._decide(body)
+
+        if canned is not None:
+            text = mask_output(canned)
+
+            def canned_frames():
+                for i in range(0, len(text), FAQ_CHUNK_SIZE):
+                    yield encode_sse(text[i:i + FAQ_CHUNK_SIZE])
+                yield "data: [DONE]\n\n"
+
+            return canned_frames()
+
         payload = build_payload(body, self.settings, stream=True)
         # 立即取到上游流（鉴权/连不通会在此抛错，接口层还能返回 502）
         deltas = self.llm.stream(payload["messages"])
@@ -56,3 +90,6 @@ class ChatService:
             yield "data: [DONE]\n\n"
 
         return frames()
+
+
+__all__ = ["ChatService", "build_payload", "encode_sse", "AppError"]

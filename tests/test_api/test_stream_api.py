@@ -46,8 +46,10 @@ def test_stream_is_sse_and_reassembles(base_url):
 @pytest.mark.fast
 def test_stream_upstream_failure_returns_502(badkey_base_url):
     """上游在推流开始前就失败 → 还能给出正确的 502（这是能测的部分）。"""
+    # 用会走 LLM 的开放问题，避免被意图路由短路到 FAQ（那会是 200 而非 502）
     r = requests.post(f"{badkey_base_url}/chat/stream",
-                      json={"message": "能退款吗"}, stream=True, timeout=30)
+                      json={"message": "我遇到一个比较特殊的售后情况，想请你帮我分析一下"},
+                      stream=True, timeout=30)
     assert r.status_code == 502                                  # A
 
 

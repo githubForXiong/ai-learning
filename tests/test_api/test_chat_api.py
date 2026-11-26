@@ -4,6 +4,10 @@
 import pytest
 import requests
 
+# 会走 LLM 的开放问题：长度>15 且不含 FAQ 关键词、不含订单号、不含"人工"
+# （否则会被意图路由短路到 FAQ/订单/人工，测不到上游故障）
+LLM_MSG = "我遇到一个比较特殊的售后情况，想请你帮我分析一下"
+
 
 # ---------- A级：契约与校验（不花钱，进不到大模型） ----------
 
@@ -37,7 +41,7 @@ def test_empty_message_should_be_rejected(base_url):
 def test_upstream_failure_returns_502(badkey_base_url):
     """Key无效 → 上游401 → 我们应转成502并带detail（PLAN: R3）。"""
     r = requests.post(f"{badkey_base_url}/chat",
-                      json={"message": "能退款吗"}, timeout=30)
+                      json={"message": LLM_MSG}, timeout=30)
     assert r.status_code == 502                      # A
     body = r.json()
     assert body["error"]["code"] == "UPSTREAM_UNAVAILABLE"   # A：机器可读的错误码
@@ -60,7 +64,12 @@ def normal_answer(base_url):
 def test_normal_question_structure(normal_answer):
     assert normal_answer["reply"] != ""              # B：非空
     assert len(normal_answer["reply"]) < 3000        # B：长度上界
-    assert normal_answer["usage"]["total_tokens"] > 0  # B
+    if normal_answer["route"] == "llm":
+        assert normal_answer["usage"]["total_tokens"] > 0   # B：真实调用必有 token 消耗
+    else:
+        # 命中 FAQ 直答：不调模型，因此 usage 为空 —— 这本身就是要验证的省钱行为
+        assert normal_answer["usage"] == {}
+        assert normal_answer["route"] in ("faq", "order", "human")
 
 
 @pytest.mark.slow
