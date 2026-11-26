@@ -58,15 +58,16 @@
 
 ## 当前进度（AI 读这里判断下一步）
 
-- 大纲：见 `docs/curriculum.md`，已打勾到 **第 7 章**（接口16条 + E2E6条 = 22条全绿）。
-- **下一步 = 第 8 章《AI 效果评估测试》**，要点：
-  1. 讲清"为什么质量不能用 assert 表达"：幻觉、越界、语气、忠实度；
-  2. 建评测集（golden dataset）：正常/无关话题/诱导违规/不确定政策 四类 ≥15 条；
-  3. 实现 LLM-as-Judge：用另一个模型按评分标准打分，输出分数+理由；
-  4. 阈值门禁与报告（平均分、拒答率、幻觉率）；
-  5. 讲义写入 `docs/lessons/ch08-效果评估.md`。
-- 测试分层现状：`tests/test_api/`（L1单元+L2接口，16条）、`tests/test_e2e/`（L3，6条）。
-  运行：`source .env && pytest tests -q`（需 pip install -r app/requirements.txt -r tests/requirements.txt）。
+- 大纲：见 `docs/curriculum.md`，已打勾到 **第 8 章**（接口16 + E2E6 + 评估3 = 25条全绿）。
+- **下一步 = 第 9 章《综合实战与 CI》**，要点：
+  1. 分层执行策略：快速层（单元/接口/页面契约）每次提交跑；评估层放 nightly；
+  2. `pytest.ini` 加 markers（fast/eval/e2e），`-m` 选择；
+  3. GitHub Actions：push 触发 fast 层，定时触发 eval 层；Key 走 Repository secrets；
+  4. 无 Key 时的降级（Mock/跳过）策略；
+  5. 测试报告与失败定位；讲义写入 `docs/lessons/ch09-CI与综合实战.md`。
+- 测试现状：`tests/test_api/`（L1+L2，16）、`tests/test_e2e/`（L3，6）、
+  `tests/eval/`（L4，3；12条评测集，约24次模型调用，勿进每次提交的 CI）。
+  运行：`source .env && pytest tests -q`。
 - 环境坑位备忘（沙箱重置后常遇到）：需重装 `fastapi uvicorn playwright`；
   Chromium 走镜像 `PLAYWRIGHT_DOWNLOAD_HOST=https://registry.npmmirror.com/-/binary/playwright`；
   Linux 缺库执行 `playwright install-deps chromium`。
