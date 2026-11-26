@@ -4,6 +4,10 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+import pytest
+
+pytestmark = pytest.mark.fast   # 整层归入快速层
+
 from app.main import build_payload, ChatRequest, SYSTEM_PROMPT, MAX_HISTORY
 
 

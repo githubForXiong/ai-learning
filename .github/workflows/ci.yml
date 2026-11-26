@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r app/requirements.txt -r tests/requirements.txt
+
+      - name: 安装 Chromium（E2E 需要）
+        run: python -m playwright install --with-deps chromium
+
+      - name: 先跑快速层（无需 Key，1 分钟内给结论）
+        run: pytest -m fast
+
+      - name: 再跑完整层
+        env:
+          # 有 secret 就跑真实调用；没有则 needs_key 用例自动跳过（见 tests/conftest.py 钩子）
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: pytest
+
+      - name: 失败时保存日志
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-log
+          path: .pytest_cache/v/cache/lastfailed
+          if-no-files-found: ignore

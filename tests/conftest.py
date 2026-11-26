@@ -35,9 +35,9 @@ def _wait_ready(base: str, timeout: float = 20):
 
 @pytest.fixture(scope="session")
 def base_url():
-    """正常服务器：使用 .env 里的真实 Key。"""
+    """正常服务器：Key 可缺失——服务照样能启动，
+    需要真实调用的用例会被 needs_key 标记自动跳过（见文件末尾钩子）。"""
     key = os.environ.get("DEEPSEEK_API_KEY", "")
-    assert key, "请先 source .env 再运行测试（export DEEPSEEK_API_KEY=...）"
     p = _start(8123, key)
     _wait_ready(GOOD_BASE)
     yield GOOD_BASE
@@ -51,3 +51,14 @@ def badkey_base_url():
     _wait_ready(BAD_BASE)
     yield BAD_BASE
     p.terminate()
+
+
+def pytest_collection_modifyitems(config, items):
+    """CI 里没配 Key 时，自动跳过所有 needs_key 用例，而不是让它们红。
+    这样：开源协作者的 PR（拿不到 secret）也能跑通其余用例。"""
+    if os.environ.get("DEEPSEEK_API_KEY", "").strip():
+        return
+    skip = pytest.mark.skip(reason="未设置 DEEPSEEK_API_KEY，跳过需要真实模型调用的用例")
+    for item in items:
+        if "needs_key" in item.keywords:
+            item.add_marker(skip)

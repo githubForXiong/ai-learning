@@ -4,6 +4,7 @@
 import json
 import time
 
+import pytest
 import requests
 
 
@@ -22,6 +23,8 @@ def parse_sse(resp) -> tuple[str, bool, int]:
     return "".join(deltas), got_done, len(deltas)
 
 
+@pytest.mark.slow
+@pytest.mark.needs_key
 def test_stream_is_sse_and_reassembles(base_url):
     r = requests.post(f"{base_url}/chat/stream",
                       json={"message": "换货怎么操作？", "history": []},
@@ -40,6 +43,7 @@ def test_stream_is_sse_and_reassembles(base_url):
     assert time.time() - t0 < 30                                 # B
 
 
+@pytest.mark.fast
 def test_stream_upstream_failure_returns_502(badkey_base_url):
     """上游在推流开始前就失败 → 还能给出正确的 502（这是能测的部分）。"""
     r = requests.post(f"{badkey_base_url}/chat/stream",
@@ -47,6 +51,8 @@ def test_stream_upstream_failure_returns_502(badkey_base_url):
     assert r.status_code == 502                                  # A
 
 
+@pytest.mark.slow
+@pytest.mark.needs_key
 def test_stream_no_done_sentinel_would_fail(base_url):
     """教学用例：演示'协议断言'的价值——若实现漏发[DONE]，前端会永远等待。
     这里对正常流验证哨兵存在（与第一条呼应，强调这是契约的一部分）。"""

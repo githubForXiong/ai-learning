@@ -38,6 +38,7 @@ def page(browser, base_url):
 
 # ---------------- A级：页面契约（不调大模型，秒级） ----------------
 
+@pytest.mark.fast
 def test_page_loads(page):
     """打开首页：标题、输入框、按钮都在，且按钮可用。"""
     expect(page.locator("h2")).to_have_text("AI客服小D")
@@ -47,6 +48,7 @@ def test_page_loads(page):
     expect(page.locator("#send")).to_be_enabled()
 
 
+@pytest.mark.fast
 def test_empty_input_does_not_send(page):
     """空输入点发送：不应该产生任何气泡（前端 return 掉）。
 
@@ -59,6 +61,7 @@ def test_empty_input_does_not_send(page):
     assert page.locator(".msg").count() == before
 
 
+@pytest.mark.fast
 def test_whitespace_input_does_not_send(page):
     """纯空格也应被前端 trim 掉。"""
     page.fill("#input", "   ")
@@ -70,6 +73,8 @@ def test_whitespace_input_does_not_send(page):
 
 # ---------------- B级：完整闭环（真实调用） ----------------
 
+@pytest.mark.slow
+@pytest.mark.needs_key
 def test_full_chat_roundtrip(page):
     """用户视角的完整闭环：输入 → 点击 → 用户气泡 → AI 回答 → 按钮恢复。"""
     page.fill("#input", "退款多久到账？")
@@ -91,6 +96,8 @@ def test_full_chat_roundtrip(page):
         f"回答与退款无关: {final[:60]}"
 
 
+@pytest.mark.slow
+@pytest.mark.needs_key
 def test_streaming_renders_progressively(page):
     """证明"真流式"：回答文字是逐步长出来的，而不是最后一次性出现。
 
@@ -122,6 +129,8 @@ def test_streaming_renders_progressively(page):
         f"未观测到半截状态，可能是假流式（一次性返回）: {lengths[:10]}..."
 
 
+@pytest.mark.slow
+@pytest.mark.needs_key
 def test_multi_turn_history_lives_in_browser(page):
     """E2E 才能覆盖的点：多轮 history 保存在浏览器内存里。
     第6章接口测试必须手工构造 history；这里用户只管连续提问，前端自动攒历史。

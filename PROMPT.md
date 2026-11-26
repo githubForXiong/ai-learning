@@ -58,16 +58,18 @@
 
 ## 当前进度（AI 读这里判断下一步）
 
-- 大纲：见 `docs/curriculum.md`，已打勾到 **第 8 章**（接口16 + E2E6 + 评估3 = 25条全绿）。
-- **下一步 = 第 9 章《综合实战与 CI》**，要点：
-  1. 分层执行策略：快速层（单元/接口/页面契约）每次提交跑；评估层放 nightly；
-  2. `pytest.ini` 加 markers（fast/eval/e2e），`-m` 选择；
-  3. GitHub Actions：push 触发 fast 层，定时触发 eval 层；Key 走 Repository secrets；
-  4. 无 Key 时的降级（Mock/跳过）策略；
-  5. 测试报告与失败定位；讲义写入 `docs/lessons/ch09-CI与综合实战.md`。
-- 测试现状：`tests/test_api/`（L1+L2，16）、`tests/test_e2e/`（L3，6）、
-  `tests/eval/`（L4，3；12条评测集，约24次模型调用，勿进每次提交的 CI）。
-  运行：`source .env && pytest tests -q`。
+- 大纲：见 `docs/curriculum.md`，主线 **第 1~9 章全部完成**，剩第 10 章（RAG，必修）。
+- **下一步 = 第 10 章《迷你 RAG：知识库检索 + 检索与忠实度测试》**，要点：
+  1. 概念：RAG 三段（检索 R / 增强 G / 生成 A）、文档切块、最简关键词检索（不上向量库）；
+  2. 实现：`app/kb/` 十余篇售后政策文档 + `retrieve(query)`；`/chat` 拼检索结果进 prompt；
+  3. 测试①检索召回：确定性，精确断言"问X应召回文档Y"；
+  4. 测试②忠实度：回答是否只基于检索到的文档（LLM-as-Judge，防幻觉）；
+  5. 讲义写入 `docs/lessons/ch10-迷你RAG与测试.md`。
+- 测试体系现状：
+  - `pytest` 默认跑 22 条（fast 13 + slow 9），排除 eval；
+  - `pytest -m fast` 13 条（无 Key 也能跑）；`pytest -m eval -s` 跑评估（约24次调用）；
+  - 无 Key 时 needs_key 用例自动 skip（conftest 钩子），不会红；
+  - CI：`.github/workflows/ci.yml`（push 触发）、`nightly.yml`（每日 02:00 北京时间跑 eval）。
 - 环境坑位备忘（沙箱重置后常遇到）：需重装 `fastapi uvicorn playwright`；
   Chromium 走镜像 `PLAYWRIGHT_DOWNLOAD_HOST=https://registry.npmmirror.com/-/binary/playwright`；
   Linux 缺库执行 `playwright install-deps chromium`。

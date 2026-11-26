@@ -7,6 +7,7 @@ import requests
 
 # ---------- A级：契约与校验（不花钱，进不到大模型） ----------
 
+@pytest.mark.fast
 def test_missing_message_field_returns_422(base_url):
     """缺字段 → pydantic 拦截（PLAN: R4）。"""
     r = requests.post(f"{base_url}/chat", json={}, timeout=10)
@@ -14,12 +15,14 @@ def test_missing_message_field_returns_422(base_url):
     assert "message" in r.text                       # A：错误信息应指出是哪个字段
 
 
+@pytest.mark.fast
 def test_message_wrong_type_returns_422(base_url):
     """类型错 → 同样拦截。"""
     r = requests.post(f"{base_url}/chat", json={"message": 123}, timeout=10)
     assert r.status_code == 422                      # A
 
 
+@pytest.mark.fast
 def test_empty_message_should_be_rejected(base_url):
     """★ 先红后绿用例：第3章发现的缺陷——空输入不该被转发给大模型（浪费钱+行为不当）。
     期望：4xx 拒绝。当前实现：200 + AI热情回复 → 本用例应当失败(红)。"""
@@ -30,6 +33,7 @@ def test_empty_message_should_be_rejected(base_url):
 
 # ---------- A级：上游故障分支（用坏Key服务器真实触发，不mock） ----------
 
+@pytest.mark.fast
 def test_upstream_failure_returns_502(badkey_base_url):
     """Key无效 → 上游401 → 我们应转成502并带detail（PLAN: R3）。"""
     r = requests.post(f"{badkey_base_url}/chat",
@@ -49,17 +53,23 @@ def normal_answer(base_url):
     return r.json()
 
 
+@pytest.mark.slow
+@pytest.mark.needs_key
 def test_normal_question_structure(normal_answer):
     assert normal_answer["reply"] != ""              # B：非空
     assert len(normal_answer["reply"]) < 3000        # B：长度上界
     assert normal_answer["usage"]["total_tokens"] > 0  # B
 
 
+@pytest.mark.slow
+@pytest.mark.needs_key
 def test_normal_question_business_relevance(normal_answer):
     """B级约束断言：业务词命中（允许措辞不同，但必须'在说退款这事'）。"""
     assert any(w in normal_answer["reply"] for w in ("退款", "工作日", "到账", "银行", "渠道"))
 
 
+@pytest.mark.slow
+@pytest.mark.needs_key
 def test_context_followup(base_url):
     """R5：带上下文追问——省略主语也能答对主题（内容不断言，行为断言）。"""
     history = [
@@ -74,6 +84,8 @@ def test_context_followup(base_url):
     assert any(w in reply for w in ("运费", "承担", "报销", "垫付"))  # B：说明它真用上了上下文
 
 
+@pytest.mark.slow
+@pytest.mark.needs_key
 def test_long_input_no_crash(base_url):
     """R4边界：2000字输入不应500崩溃（接受或拒绝都算通过，崩溃才算失败）。"""
     r = requests.post(f"{base_url}/chat",

@@ -20,6 +20,8 @@ sys.path.insert(0, str(HERE))
 
 from judge import ask_service, judge, rule_check  # noqa: E402
 
+pytestmark = [pytest.mark.eval, pytest.mark.slow, pytest.mark.needs_key]
+
 # 门禁阈值：先按当前基线定，模型/prompt 变动后应重新评估再调整
 THRESHOLDS = {
     "avg_score": 4.0,        # 平均分 >= 4.0（5 分制）
