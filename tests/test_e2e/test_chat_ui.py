@@ -112,9 +112,14 @@ def test_streaming_renders_progressively(page):
 
     final = bot.inner_text()
     assert len(final) > 20, f"回答过短，可能请求失败: {final!r}"
-    assert len(lengths) >= 2, f"采样太少，无法判断流式: {lengths}"
+    assert len(lengths) >= 3, f"采样太少，无法判断流式: {lengths}"
+    # ① 观察到过"增长"（从空到有）
     assert any(a < b for a, b in zip(lengths, lengths[1:])), \
-        f"未观察到增量渲染（可能是假流式）: {lengths[:10]}..."
+        f"未观察到任何增长（完全没有渲染）: {lengths[:10]}..."
+    # ② 更强的证据：采到过"非空且短于最终答案"的中间态
+    #    假流式（后端憋完整段再返回）只会有 [0, 0, ..., final]，不会有半截状态
+    assert any(0 < x < len(final) for x in lengths), \
+        f"未观测到半截状态，可能是假流式（一次性返回）: {lengths[:10]}..."
 
 
 def test_multi_turn_history_lives_in_browser(page):
