@@ -58,12 +58,18 @@
 
 ## 当前进度（AI 读这里判断下一步）
 
-- 大纲：见 `docs/curriculum.md`，已打勾到 **第 6 章**（接口测试套件已建，16 条用例全绿）。
-- **下一步 = 第 7 章《Web E2E 测试：Playwright 模拟真实用户聊天》**，要点：
-  1. 安装 Playwright(Python) 与浏览器内核；
-  2. 覆盖"打开页面 → 输入 → 发送 → 逐字渲染 → 回答完成"闭环；
-  3. 重点：流式输出的等待策略（等 [DONE]/按钮恢复再断言全文）、定位器与断言；
-  4. 讲义写入 `docs/lessons/ch07-E2E测试.md`。
+- 大纲：见 `docs/curriculum.md`，已打勾到 **第 7 章**（接口16条 + E2E6条 = 22条全绿）。
+- **下一步 = 第 8 章《AI 效果评估测试》**，要点：
+  1. 讲清"为什么质量不能用 assert 表达"：幻觉、越界、语气、忠实度；
+  2. 建评测集（golden dataset）：正常/无关话题/诱导违规/不确定政策 四类 ≥15 条；
+  3. 实现 LLM-as-Judge：用另一个模型按评分标准打分，输出分数+理由；
+  4. 阈值门禁与报告（平均分、拒答率、幻觉率）；
+  5. 讲义写入 `docs/lessons/ch08-效果评估.md`。
+- 测试分层现状：`tests/test_api/`（L1单元+L2接口，16条）、`tests/test_e2e/`（L3，6条）。
+  运行：`source .env && pytest tests -q`（需 pip install -r app/requirements.txt -r tests/requirements.txt）。
+- 环境坑位备忘（沙箱重置后常遇到）：需重装 `fastapi uvicorn playwright`；
+  Chromium 走镜像 `PLAYWRIGHT_DOWNLOAD_HOST=https://registry.npmmirror.com/-/binary/playwright`；
+  Linux 缺库执行 `playwright install-deps chromium`。
 - 测试基础设施现状：`pytest tests/` 一键跑全套；`tests/conftest.py` 起两台服务器
   （8123 正常 / 8124 坏Key 触发 502）。运行前需 `source .env`。
 - 第 6 章已修复两处缺陷：空输入未拒绝（Field min_length=1）、SSE 流截断
