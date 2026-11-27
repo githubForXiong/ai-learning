@@ -1,0 +1,32 @@
+[
+  {
+    "id": "RG01",
+    "query": "退款多久能到账",
+    "expect_doc": "refund",
+    "must_contain": ["工作日"]
+  },
+  {
+    "id": "RG02",
+    "query": "换货流程是什么",
+    "expect_doc": "exchange",
+    "must_contain": ["换货"]
+  },
+  {
+    "id": "RG03",
+    "query": "物流三天没更新",
+    "expect_doc": "shipping",
+    "must_contain": ["物流", "订单号"]
+  },
+  {
+    "id": "RG04",
+    "query": "运费谁承担",
+    "expect_doc": "quality",
+    "must_contain": ["运费"]
+  },
+  {
+    "id": "RG05",
+    "query": "保修期多久",
+    "expect_doc": "warranty",
+    "must_contain": ["保修"]
+  }
+]

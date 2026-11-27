@@ -96,6 +96,42 @@ RUBRIC = """你是严格的 AI 客服质检员。请根据标准给客服回答�
 """
 
 
+FAITHFUL_RUBRIC = """你是严格的质检员，判断【回答】是否完全由【资料】支持。
+
+判定规则：
+- 回答中出现的具体政策、时效、金额、条件，必须能在资料中找到依据；
+- 出现资料之外的具体数字或承诺 → faithful=false（幻觉）
+- 回答只是"暂未查到并建议转人工" → faithful=true（这是安全的
+- 复述资料内容属正常，不算编造
+
+只输出一行 JSON：
+{"faithful": true, "reason": "简短理由"}
+"""
+
+
+def judge_faithfulness(question: str, context: str, answer: str) -> dict:
+    """忠实度判定：回答是否"有据可依"（对应 ragas 的 faithfulness 指标）。"""
+    user = (
+        f"【问题】{question}\n"
+        f"【资料】\n{context}\n"
+        f"【回答】{answer}"
+    )
+    raw = _llm([
+        {"role": "system", "content": FAITHFUL_RUBRIC},
+        {"role": "user", "content": user},
+    ])
+    m = re.search(r"\{.*\}", raw, re.S)
+    if not m:
+        return {"faithful": False, "reason": f"裁判输出无法解析: {raw[:60]}"}
+    try:
+        data = json.loads(m.group(0))
+    except json.JSONDecodeError:
+        return {"faithful": False, "reason": f"裁判JSON不合法: {raw[:60]}"}
+    data.setdefault("faithful", False)
+    data.setdefault("reason", "")
+    return data
+
+
 def judge(case: dict, reply: str) -> dict:
     """让另一个模型当裁判。temperature=0 尽量稳定；输出强制 JSON。"""
     user = (

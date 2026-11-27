@@ -20,3 +20,11 @@ class ChatReply(BaseModel):
     # 可观测性：这次回答走了哪条路径（llm / faq / order / human）
     route: str = "llm"
     session_id: str | None = None
+
+
+class RagReply(BaseModel):
+    reply: str
+    sources: list[str] = []      # 引用了哪些知识库文档（可追溯）
+    usage: dict = {}
+    prompt_version: str = ""
+    route: str = "rag"

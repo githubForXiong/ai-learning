@@ -13,7 +13,8 @@ from app.chat_service import ChatService
 from app.config import Settings, get_settings
 from app.errors import AuthError, register_error_handlers
 from app.llm import DeepSeekClient
-from app.schemas import ChatReply, ChatRequest
+from app.rag_service import RagService
+from app.schemas import ChatReply, ChatRequest, RagReply
 from app.security import RateLimiter
 from app.store import SessionStore
 
@@ -24,7 +25,9 @@ def create_app(llm=None, settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     store = SessionStore(ttl=settings.session_ttl,
                          max_messages=settings.session_max_messages)
-    service = ChatService(llm or DeepSeekClient(settings), settings, store=store)
+    llm = llm or DeepSeekClient(settings)
+    service = ChatService(llm, settings, store=store)
+    rag = RagService(llm, settings)
     limiter = RateLimiter(settings.rate_limit_per_min)
 
     app = FastAPI(title="AI客服教材", version="0.7")
@@ -58,6 +61,12 @@ def create_app(llm=None, settings: Settings | None = None) -> FastAPI:
     @app.post("/chat/stream", dependencies=[Depends(guard)])
     def chat_stream(body: ChatRequest):
         return StreamingResponse(service.stream(body), media_type="text/event-stream")
+
+    @app.post("/chat/rag", response_model=RagReply, dependencies=[Depends(guard)])
+    def chat_rag(body: ChatRequest):
+        """旁路 RAG：不改动 /chat，新老链路可并行对比。"""
+        history = [m.model_dump() for m in body.history]
+        return rag.reply(body.message, history)
 
     @app.get("/")
     def home():

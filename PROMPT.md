@@ -68,19 +68,21 @@
 
 ## 当前进度（AI 读这里判断下一步）
 
-- 大纲：见 `docs/curriculum.md`，主线 **第 1~9 章全部完成**，剩第 10 章（RAG，必修）。
-- **下一步 = 第 10 章《迷你 RAG：知识库检索 + 检索与忠实度测试》**，要点：
-  1. 概念：RAG 三段（检索 R / 增强 G / 生成 A）、文档切块、最简关键词检索（不上向量库）；
-  2. 实现：`app/kb/` 十余篇售后政策文档 + `retrieve(query)`；`/chat` 拼检索结果进 prompt；
-  3. 测试①检索召回：确定性，精确断言"问X应召回文档Y"；
-  4. 测试②忠实度：回答是否只基于检索到的文档（LLM-as-Judge，防幻觉）；
-  5. 讲义写入 `docs/lessons/ch10-迷你RAG与测试.md`。
+- 大纲：见 `docs/curriculum.md`，**第 1~10 章全部完成**（含 RAG 进阶）。
+- **下一步可选方向**（学习者未定，勿自行开工）：
+  1. 按"生产化清单"补工程化：respx Mock、jsonschema 契约、pytest-html/allure 报告、
+     coverage 门禁、POM + 参数化整改；
+  2. 重写第 1~9 章讲义为"问题→推演→方案对比→动手→迁移"的新教学模板；
+  3. 接入 ragas/deepeval 替换轻量裁判（需先验证 Python 3.14 兼容性）；
+  4. 功能扩展：多租户知识库、工具调用改为真正的 function calling、转人工回执闭环。
 - **v0.5 分层重构** + **v0.6 业务能力扩展** 已完成：
   - v0.5：业务与 LLM 客户端解耦（`create_app(llm=FakeLLM())`）、统一错误体、`/healthz`、request_id
   - v0.6：意图路由（faq/order/human/llm）、8 条 FAQ 直答、订单查询、转人工工单、输入审核、PII 脱敏
   - v0.7：服务端会话（`session_id`，忽略客户端 history 防篡改）、鉴权（`REQUIRE_AUTH`+`API_KEYS`）、
     限流（`RATE_LIMIT_PER_MIN`）；三开关默认关闭，不影响本地开发
-  - 测试 51 条全绿（42 fast + 9 slow）
+  - v0.8：旁路 RAG（`POST /chat/rag`，`/chat` 不动）；10 篇政策文档 + bigram 检索；
+    召回 10 组 param 用例、忠实度裁判
+  - 测试 78 条全绿（fast 69 + slow 9），另有 6 条 eval 默认排除
   - 注意：FAQ 直答改变了部分回答来源，**eval 评测集需重跑并重定基线阈值**
 - 待补（生产化清单，按需推进）：服务端会话存储、重试/退避/限流、结构化日志、
   jsonschema 契约校验、respx Mock、pytest-html/allure 报告、coverage 门禁、
