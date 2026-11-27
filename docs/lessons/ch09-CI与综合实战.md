@@ -167,8 +167,21 @@ main.py          接口：create_app(llm=...) 工厂、request_id 中间件、/h
 **重构后 26 条测试全绿，且测试只改了 import 和一处错误码断言**——
 这正说明分层没有破坏对外契约，只是把内部实现换成了更好的结构。
 
-待补（生产化清单）：服务端会话存储、重试/退避/限流、结构化日志、jsonschema 契约校验、
-respx Mock、pytest-html/allure 报告、coverage 门禁、POM + parametrize、ragas/deepeval。
+### v0.6 / v0.7 继续补齐（普通客服机器人标配）
+
+- **v0.6 业务能力**：意图路由（faq/order/human/llm）、8 条 FAQ 直答、订单查询、
+  转人工工单、输入审核、PII 脱敏。新增 9 条零成本用例（用 `llm.calls == []` 断言"省钱"）。
+- **v0.7 安全与会话**：服务端会话（`session_id` + TTL + 滑动窗口，**忽略客户端 history 防篡改**）、
+  鉴权（`REQUIRE_AUTH` + `API_KEYS`，401）、限流（`RATE_LIMIT_PER_MIN`，429）。
+  三个开关默认关闭，保证本地开发与既有用例不受影响。
+- 测试从 26 → 35 → 51 条；`pytest -m fast` 6.7s。
+
+**一个真实 bug（测试抓到的）**：`SessionStore.get()` 里写 `list(messages)` 只做了浅拷贝，
+内层 dict 仍共享，调用方一改就污染存储。改成逐条 `dict(m)` 后通过。
+—— **"返回副本"这类要求，必须用测试锁住，否则永远只是口头约定。**
+
+待补（生产化清单）：重试/退避、结构化日志、jsonschema 契约校验、respx Mock、
+pytest-html/allure 报告、coverage 门禁、POM + parametrize、ragas/deepeval。
 
 ## 追问记录
 

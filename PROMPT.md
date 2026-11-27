@@ -53,6 +53,8 @@
 │   ├── router.py              ← 意图路由：faq/order/human/llm（首轮+短问题才 FAQ）
 │   ├── orders.py              ← 订单查询（模拟工具调用）
 │   ├── moderation.py          ← 输入违规拦截 + 手机号/身份证脱敏
+│   ├── store.py               ← 服务端会话存储（TTL + 滑动窗口，返回深拷贝）
+│   ├── security.py            ← 限流器（每分钟滑动窗口）
 │   ├── kb/faq.json            ← 8 条 FAQ 直答库
 │   ├── main.py                ← 接口：create_app(llm=...) 工厂、中间件、/healthz、路由
 │   ├── static/index.html      ← 聊天前端
@@ -76,7 +78,9 @@
 - **v0.5 分层重构** + **v0.6 业务能力扩展** 已完成：
   - v0.5：业务与 LLM 客户端解耦（`create_app(llm=FakeLLM())`）、统一错误体、`/healthz`、request_id
   - v0.6：意图路由（faq/order/human/llm）、8 条 FAQ 直答、订单查询、转人工工单、输入审核、PII 脱敏
-  - 测试 35 条全绿；因直答不调模型，全套耗时 17s → 10.7s
+  - v0.7：服务端会话（`session_id`，忽略客户端 history 防篡改）、鉴权（`REQUIRE_AUTH`+`API_KEYS`）、
+    限流（`RATE_LIMIT_PER_MIN`）；三开关默认关闭，不影响本地开发
+  - 测试 51 条全绿（42 fast + 9 slow）
   - 注意：FAQ 直答改变了部分回答来源，**eval 评测集需重跑并重定基线阈值**
 - 待补（生产化清单，按需推进）：服务端会话存储、重试/退避/限流、结构化日志、
   jsonschema 契约校验、respx Mock、pytest-html/allure 报告、coverage 门禁、

@@ -11,9 +11,11 @@ GOOD_BASE = "http://127.0.0.1:8123"
 BAD_BASE = "http://127.0.0.1:8124"
 
 
-def _start(port: int, api_key: str) -> subprocess.Popen:
+def _start(port: int, api_key: str, extra: dict | None = None) -> subprocess.Popen:
     env = dict(os.environ)
     env["DEEPSEEK_API_KEY"] = api_key
+    if extra:
+        env.update(extra)
     return subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "app.main:app",
          "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],
@@ -50,6 +52,24 @@ def badkey_base_url():
     p = _start(8124, "sk-invalid-for-testing")
     _wait_ready(BAD_BASE)
     yield BAD_BASE
+    p.terminate()
+
+
+@pytest.fixture(scope="session")
+def auth_base_url():
+    """开启鉴权的服务器（API_KEYS=secret-key）。"""
+    p = _start(8125, "sk-x", {"REQUIRE_AUTH": "1", "API_KEYS": "secret-key"})
+    _wait_ready("http://127.0.0.1:8125")
+    yield "http://127.0.0.1:8125"
+    p.terminate()
+
+
+@pytest.fixture(scope="session")
+def limited_base_url():
+    """每分钟只允许 2 次的服务器（限流测试用）。"""
+    p = _start(8126, "sk-x", {"RATE_LIMIT_PER_MIN": "2"})
+    _wait_ready("http://127.0.0.1:8126")
+    yield "http://127.0.0.1:8126"
     p.terminate()
 
 

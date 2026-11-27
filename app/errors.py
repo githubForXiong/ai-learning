@@ -36,6 +36,18 @@ class InputBlockedError(AppError):
     message = "输入包含违规内容"
 
 
+class AuthError(AppError):
+    code = "UNAUTHORIZED"
+    status = 401
+    message = "缺少或无效的 API Key"
+
+
+class RateLimitError(AppError):
+    code = "RATE_LIMITED"
+    status = 429
+    message = "请求过于频繁"
+
+
 def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(AppError)
     def handle_app_error(request: Request, exc: AppError):

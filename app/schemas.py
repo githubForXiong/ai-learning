@@ -9,7 +9,8 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1)   # 空输入在门口就被拒绝（第6章红灯用例驱动）
-    history: list[ChatMessage] = []
+    history: list[ChatMessage] = []      # 兼容模式：调用方自带历史（旧客户端）
+    session_id: str | None = None        # 推荐模式：历史存服务端，客户端只带 id
 
 
 class ChatReply(BaseModel):
@@ -18,3 +19,4 @@ class ChatReply(BaseModel):
     prompt_version: str = ""
     # 可观测性：这次回答走了哪条路径（llm / faq / order / human）
     route: str = "llm"
+    session_id: str | None = None

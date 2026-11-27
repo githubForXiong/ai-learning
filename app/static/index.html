@@ -29,8 +29,9 @@
     const input = document.getElementById("input");
     const send = document.getElementById("send");
 
-    // 对话历史：前端自己记住，每次随请求发给后端（大模型本身没有记忆）
-    const history = [];
+    // 会话 ID：历史存在服务端，前端只负责带上 id（刷新会开新会话）
+    const sessionId = (crypto.randomUUID ? crypto.randomUUID()
+      : "s-" + Date.now() + "-" + Math.random().toString(16).slice(2));
 
     function addMsg(text, cls) {
       const div = document.createElement("div");
@@ -54,7 +55,7 @@
         const resp = await fetch("/chat/stream", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message, history }),
+          body: JSON.stringify({ message, session_id: sessionId }),
         });
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({}));
@@ -88,10 +89,7 @@
       } catch (e) {
         botDiv.textContent = "网络错误：" + e.message;
       } finally {
-        if (full) {
-          history.push({ role: "user", content: message });
-          history.push({ role: "assistant", content: full });
-        }
+        // 历史由服务端按 session_id 保存，前端不再自持（防止被篡改 / 刷新丢失）
         send.disabled = false;
         input.focus();
       }

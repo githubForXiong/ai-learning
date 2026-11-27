@@ -27,8 +27,23 @@ class Settings:
     max_history: int = MAX_HISTORY
     system_prompt: str = SYSTEM_PROMPT
     prompt_version: str = SYSTEM_PROMPT_VERSION
+    # 安全开关：默认全关，显式开启后生效（不破坏本地开发与现有测试）
+    require_auth: bool = False
+    api_keys: tuple[str, ...] = ()
+    rate_limit_per_min: int = 0
+    # 会话
+    session_ttl: int = 1800
+    session_max_messages: int = 20
 
 
 def get_settings() -> Settings:
     """从环境变量构建配置。测试可传入自定义 Settings，无需环境变量。"""
-    return Settings(api_key=os.environ.get("DEEPSEEK_API_KEY", ""))
+    keys = tuple(k.strip() for k in os.environ.get("API_KEYS", "").split(",") if k.strip())
+    return Settings(
+        api_key=os.environ.get("DEEPSEEK_API_KEY", ""),
+        require_auth=os.environ.get("REQUIRE_AUTH", "0") == "1",
+        api_keys=keys,
+        rate_limit_per_min=int(os.environ.get("RATE_LIMIT_PER_MIN", "0") or 0),
+        session_ttl=int(os.environ.get("SESSION_TTL", "1800") or 1800),
+        session_max_messages=int(os.environ.get("SESSION_MAX_MESSAGES", "20") or 20),
+    )

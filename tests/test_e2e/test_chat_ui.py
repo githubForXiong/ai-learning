@@ -131,7 +131,7 @@ def test_streaming_renders_progressively(page):
 
 @pytest.mark.slow
 @pytest.mark.needs_key
-def test_multi_turn_history_lives_in_browser(page):
+def test_multi_turn_context_via_server_session(page):
     """E2E 才能覆盖的点：多轮 history 保存在浏览器内存里。
     第6章接口测试必须手工构造 history；这里用户只管连续提问，前端自动攒历史。
     """
